@@ -16,28 +16,19 @@ def process_deliverect_order_data():
     # Initialize DataFrame for data processing
     # The 'imported_deliverect_item_level_detail_data' is assigned to 'df' for processing
     df = imported_deliverect_order_data
-    print(df)
 
     # Apply 'column_name_cleaner', 'convert_to_custom_format', 'process_deliverect_shared_data', 'clean_deliverect_product_name' and 'process_deliverect_remove_duplicates' functions to DataFrame 'df'
     df = column_name_cleaner(df)
-    print(df)
     df['OrderID'] = df['OrderID'].apply(convert_to_custom_format)
-    print(df)
 
     # TEMP - Export for Checking
     os.chdir(r'C:\Users\gerry\Downloads')
     df.to_csv('Order Data Checker 1.csv', index=False)
-
     df = process_deliverect_shared_data(df) # Lost 22 Records
-    print(df)
-
     os.chdir(r'C:\Users\gerry\Downloads')
     df.to_csv('Order Data Checker 2.csv', index=False)
-
     df = clean_deliverect_product_name(df)
-    print(df)
     df = process_deliverect_remove_duplicates(df)
-    print(df)
 
     # Sort the DataFrame by 'OrderPlacedDate', 'OrderPlacedTime', and 'PrimaryKey' to meet your sorting requirements
     df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)

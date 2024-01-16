@@ -21,12 +21,7 @@ def process_deliverect_item_level_detail_data():
     df = column_name_cleaner(df)
     df['OrderID'] = df['OrderID'].apply(convert_to_custom_format)
     df = process_deliverect_shared_data(df)
-
-
     df = clean_deliverect_product_name(df)
-
-    # Correct
-    df['Location'] = np.where(df['Location'] == '')
 
     # Sort the DataFrame by 'OrderPlacedDate', 'OrderPlacedTime', and 'PrimaryKey' to meet your sorting requirements
     df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)
@@ -34,9 +29,6 @@ def process_deliverect_item_level_detail_data():
     # Implement the master_list_of_primary_keys filter to this DataFrame
     primary_key_filter = master_list_of_primary_keys(df)
     df = df[df['PrimaryKey'].isin(primary_key_filter)]
-
-    unique_count = df['PrimaryKey'].nunique()
-    print("Count of unique records in 'PrimaryKey' column:", unique_count)
 
     # This processing is specific to this DataFrame and not shared with other
     # TEMP - Export for Checking

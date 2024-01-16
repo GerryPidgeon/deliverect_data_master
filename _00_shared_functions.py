@@ -156,10 +156,8 @@ def process_deliverect_remove_duplicates(df):
                     'Cancel': 10, 'Canceled': 11, 'Failed Resolved': 12, 'Failed': 13, 'Delivery Cancelled': 14, 'Manual Retry': 15, 'Failed Cancel': 16}
     df['OrderStatus'] = pd.Categorical(df['OrderStatus'], categories=custom_order.keys(), ordered=True)
     df = df.sort_values(by=['PrimaryKey', 'OrderStatus'], ascending=[True, True])
-
     # Keep only the first record for each unique 'PrimaryKey'
     df = df.drop_duplicates(subset='PrimaryKey', keep='first')
-    # df = df['OrderID'].str.replace('', np.nan)
     df = df[df['OrderID'] != '#nan']
     df = df[df['OrderID'] != '#CustomFormatnan']
     return df
