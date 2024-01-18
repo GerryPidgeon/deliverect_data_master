@@ -20,28 +20,19 @@ def process_deliverect_order_data():
     # Apply 'column_name_cleaner', 'convert_to_custom_format', 'process_deliverect_shared_data', 'clean_deliverect_product_name' and 'process_deliverect_remove_duplicates' functions to DataFrame 'df'
     df = column_name_cleaner(df)
     df['OrderID'] = df['OrderID'].apply(convert_to_custom_format)
-
-    # TEMP - Export for Checking
-    os.chdir(r'C:\Users\gerry\Downloads')
-    df.to_csv('Order Data Checker 1.csv', index=False)
-    df = process_deliverect_shared_data(df) # Lost 22 Records
-    os.chdir(r'C:\Users\gerry\Downloads')
-    df.to_csv('Order Data Checker 2.csv', index=False)
+    df = process_deliverect_shared_data(df)
     df = clean_deliverect_product_name(df)
     df = process_deliverect_remove_duplicates(df)
 
     # Sort the DataFrame by 'OrderPlacedDate', 'OrderPlacedTime', and 'PrimaryKey' to meet your sorting requirements
     df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)
 
-    # Create Master List of PrimaryKey to apply to_02b_clean_item_level_data
-    def create_master_list_of_primary_keys(df):
-        master_list_of_primary_keys = df['PrimaryKey'].unique().tolist()
-        return master_list_of_primary_keys
+    # Create Unique List of PrimaryKey, Location and Brand to filter and correct Item Level Detail
+    def unique_primary_key_list():
+        unique_primary_key_df = df[['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'Brand', 'GrossAOV']]
+        unique_primary_key_df = unique_primary_key_df.drop_duplicates()
+        return unique_primary_key_df
 
-    # TEMP - Export for Checking
-    os.chdir(r'C:\Users\gerry\Downloads')
-    df.to_csv('Order Data Checker.csv', index=False)
+    return df, unique_primary_key_list
 
-    return df, create_master_list_of_primary_keys
-
-df, master_list_of_primary_keys = process_deliverect_order_data()
+cleaned_deliverect_order_data, unique_primary_keys = process_deliverect_order_data()

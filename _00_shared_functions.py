@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import sys
+from datetime import datetime
 
 # Rename all columns to standard notation
 def column_name_cleaner(df):
@@ -97,6 +98,12 @@ def process_deliverect_shared_data(df):
     df['OrderPlacedDate'] = df['OrderPlacedDateTime'].dt.date
     df['OrderPlacedTime'] = df['OrderPlacedDateTime'].dt.time
 
+    # Additionally, separate the date and time components for more granular analysis
+    df['PickupDateDateTime'] = pd.to_datetime(df['PickupDateTimeUTC']).dt.tz_localize('UTC')
+    df['PickupDateDateTime'] = df['PickupDateDateTime'].dt.tz_convert('Europe/Berlin')
+    df['PickupDateDate'] = df['PickupDateDateTime'].dt.date
+    df['PickupDateTime'] = df['PickupDateDateTime'].dt.time
+
     # Clean and standardize 'Brand' names
     # First, extract the primary brand name if multiple brands are listed (separated by a comma)
     df['Brand'] = df['Brand'].apply(lambda x: str(x).split(',')[0] if isinstance(x, str) and ',' in x else x)
@@ -112,6 +119,10 @@ def process_deliverect_shared_data(df):
     # df['Location'] = df['Location'].str.strip() # Clean up the Full Rx List, with Cleaned Names.csv
     df = clean_location_names(df)
 
+    # Fix Hamburg Bergedorf and Bremen Steintor (Deliverect License was re-used)
+    comparison_date = datetime.strptime('2023-09-30', '%Y-%m-%d').date()  # Convert string to datetime.date
+    df['Location'] = np.where((df['Location'] == 'Bremen Steintor') & (df['OrderPlacedDate'] <= comparison_date), 'Hamburg Bergedorf',df['Location'])
+
     # Combine 'Location' and 'Brand' into a new column 'LocWithBrand' for better identification
     df['LocWithBrand'] = df['Location'] + ' - ' + df['Brand'].str.split(n=1).str[0]
 
@@ -123,6 +134,7 @@ def process_deliverect_shared_data(df):
     # Construct a 'PrimaryKey' for each row by concatenating 'OrderID', 'Location', and 'OrderPlacedDate'
     # This unique identifier helps in distinguishing each order entry unambiguously
     df['PrimaryKey'] = df['OrderID'] + ' - ' + df['Location'] + ' - ' + df['OrderPlacedDate'].astype(str)
+    df['PrimaryKeyAlt'] = df['OrderID'] + ' - ' + df['PickupDateDate'].astype(str) + ' - ' + df['PickupDateTime'].astype(str) + ' - ' + df['GrossAOV'].astype(str)
     return df
 
 def clean_deliverect_product_name(df):
