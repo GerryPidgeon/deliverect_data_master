@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 import sys
 
@@ -28,24 +29,42 @@ def process_deliverect_item_level_detail_data():
     # Sort the DataFrame by 'OrderPlacedDate', 'OrderPlacedTime', and 'PrimaryKey' to meet your sorting requirements
     df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)
 
+    # Exclude Single Duplicate of Order 865 at Friedrichshain in Jan 23
+    df = df[~((df['OrderID'] == '#865') & (df['Location'] == 'Friedrichshain') & (df['OrderPlacedTime'] == '20:05:00'))]
+
     # Implement the master_list_of_primary_keys filter to this DataFrame
     primary_key_filter_df = unique_primary_keys()
 
-    # Correct PrimaryKey, LocWithBrand and Location from Order Data
-    df = pd.merge(df, primary_key_filter_df[['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'Brand', 'GrossAOV']], on='PrimaryKeyAlt', how='left', suffixes=('', '_temp'))
+    # Change Directory
+    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
+
+    # Filter to align with cleaned order list
+    df = pd.merge(df, primary_key_filter_df[['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'Brand', 'OrderStatus', 'GrossAOV']], on=['PrimaryKeyAlt', 'OrderStatus'], how='left', suffixes=('', '_temp'))
+    df = df.loc[df['Location_temp'].notna()]
+    df.to_csv('Cleaned Item List.csv', index=False)
 
     # Extract Missing Records
     missing_records_df = df.loc[df['Location_temp'].isna()]
     missing_records_df = missing_records_df.drop(columns={'PrimaryKey_temp', 'Location_temp', 'Brand_temp', 'GrossAOV_temp', 'ItemPrice', 'ItemQuantity', 'ProductPLU', 'ProductName'})
     missing_records_df = missing_records_df.drop_duplicates()
+    missing_records_df.to_csv('Missing Records.csv', index=False)
 
     # Check AOV
     aov_check_df = df[['PrimaryKey', 'PrimaryKeyAlt', 'ItemPrice', 'ItemQuantity', 'GrossAOV', 'GrossAOV_temp']].copy()
     aov_check_df['TotalItemCost'] = aov_check_df['ItemPrice'] * aov_check_df['ItemQuantity']
+    summed_costs = aov_check_df.groupby('PrimaryKey')['TotalItemCost'].sum().reset_index()
+    first_gross_aov = aov_check_df.drop_duplicates(subset='PrimaryKey')[['PrimaryKey', 'GrossAOV']]
+    comparison_df = pd.merge(summed_costs, first_gross_aov, on='PrimaryKey')
+    comparison_df['TotalItemCost'] = comparison_df['TotalItemCost'].round(2)
+    comparison_df['GrossAOV'] = comparison_df['GrossAOV'].round(2)
+    comparison_df['AOVCheck'] = np.where(comparison_df['TotalItemCost'] == comparison_df['GrossAOV'], 'OK', 'Price Discrepancies')
+    comparison_df['AOVCheck'] = np.where((comparison_df['TotalItemCost'] % comparison_df['GrossAOV'] == 0) & (comparison_df['TotalItemCost'] != comparison_df['GrossAOV']), 'Multiple Entries', comparison_df['AOVCheck'])
+    price_discrepancies_df = comparison_df.loc[comparison_df['AOVCheck'] == 'Price Discrepancies']
+    multiple_entry_df = comparison_df.loc[comparison_df['AOVCheck'] == 'Multiple Entries']
 
-
-
-    print(aov_check_df)
+    # Export CSV for checking
+    multiple_entry_df.to_csv('Multiple Entries.csv', index=False)
+    price_discrepancies_df.to_csv('Price Discrepancies.csv', index=False)
 
     return df
 

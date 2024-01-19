@@ -29,9 +29,12 @@ def process_deliverect_order_data():
 
     # Create Unique List of PrimaryKey, Location and Brand to filter and correct Item Level Detail
     def unique_primary_key_list():
-        unique_primary_key_df = df[['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'Brand', 'GrossAOV']]
+        unique_primary_key_df = df[['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'Brand', 'OrderStatus', 'GrossAOV']]
         unique_primary_key_df = unique_primary_key_df.drop_duplicates()
         return unique_primary_key_df
+
+    # Exclude Single Duplicate of Order 865 at Friedrichshain in Jan 23
+    df = df[(df['OrderID'] != '#865') & (df['Location'] != 'Friedrichshain') & (df['OrderPlacedTime'] != '20:05:00')]
 
     return df, unique_primary_key_list
 

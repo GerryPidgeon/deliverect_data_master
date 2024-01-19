@@ -164,6 +164,7 @@ def clean_deliverect_product_name(df):
 
 def process_deliverect_remove_duplicates(df):
     # Create Custom Sort, to delete duplicates. Created a hierarchy for OrderStatus, as the first record will be retained
+    df = df.drop_duplicates()
     custom_order = {'Delivered': 0, 'Auto Finalized': 1, 'In Delivery': 2, 'Ready For Pickup': 3, 'Prepared': 4, 'Preparing': 5, 'Accepted': 6, 'Deliverect Parsed': 7, 'New': 8, 'Scheduled': 9,
                     'Cancel': 10, 'Canceled': 11, 'Failed Resolved': 12, 'Failed': 13, 'Delivery Cancelled': 14, 'Manual Retry': 15, 'Failed Cancel': 16}
     df['OrderStatus'] = pd.Categorical(df['OrderStatus'], categories=custom_order.keys(), ordered=True)
@@ -172,4 +173,5 @@ def process_deliverect_remove_duplicates(df):
     df = df.drop_duplicates(subset='PrimaryKey', keep='first')
     df = df[df['OrderID'] != '#nan']
     df = df[df['OrderID'] != '#CustomFormatnan']
+    df = df[df['OrderStatus'] != 'Duplicate']
     return df
