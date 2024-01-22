@@ -27,7 +27,7 @@ def column_name_cleaner(df):
         'Note': 'Note',
         'ServiceCharge': 'ServiceCharge',
         'DeliveryCost': 'DeliveryCost',
-        'DiscountTotal': 'PromotionOnItems',
+        'DiscountTotal': 'PromotionsOnItems',
         'Tip': 'RxTip',
         'DriverTip': 'DriverTip',
         'SubTotal': 'GrossAOV',
@@ -51,6 +51,21 @@ def column_name_cleaner(df):
     })
 
     return df
+
+def column_name_sorter(df):
+    # List of columns in the order you want them to be
+    column_order = ['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'LocWithBrand', 'Brand', 'OrderID', 'OrderPlacedDate', 'OrderPlacedTime',
+                    'Channel', 'OrderStatus', 'DeliveryType', 'GrossAOV', 'PromotionsOnItems', 'DeliveryFee', 'DriverTip', 'IsTestOrder',
+                    'PaymentType', 'ProductPLU', 'ProductName', 'CleanedName', 'PickupTime', 'ItemPrice', 'ItemQuantity', 'TotalItemCost']
+
+    # Select only the columns that exist in the DataFrame
+    existing_columns = [col for col in column_order if col in df.columns]
+
+    # Reorder the DataFrame using only the existing columns
+    df = df[existing_columns]
+
+    return df
+
 
 # Fix Issue Where Order ID's with an E as the 3rd character comes in as a scientific number
 def convert_to_custom_format(scientific_notation):
@@ -140,9 +155,11 @@ def process_deliverect_shared_data(df):
 def clean_deliverect_product_name(df):
     # Replace NaN values in 'ProductName' with an empty string
     df['ProductName'] = df['ProductName'].fillna('')
+    df['ProductPLU'] = df['ProductPLU'].fillna('')
 
     # Correct character encoding issues in 'ProductName'
     # Encoding and then decoding with 'latin-1' helps fix any special characters or encoding errors
+    df.loc[:, 'ProductPLU'] = df['ProductPLU'].apply(lambda x: x.encode('latin-1', errors='ignore').decode('utf-8', errors='ignore'))
     df.loc[:, 'ProductName'] = df['ProductName'].apply(lambda x: x.encode('latin-1', errors='ignore').decode('utf-8', errors='ignore'))
 
     # Replace specific abbreviations and phrases in 'ProductName' for consistency and clarity

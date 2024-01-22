@@ -9,7 +9,7 @@ import csv
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # Import specific data and functions from external modules
-from _00_shared_functions import column_name_cleaner, convert_to_custom_format, process_deliverect_shared_data, clean_deliverect_product_name, process_deliverect_remove_duplicates
+from _00_shared_functions import column_name_cleaner, column_name_sorter, convert_to_custom_format, process_deliverect_shared_data, clean_deliverect_product_name, process_deliverect_remove_duplicates
 from _01_raw_import import imported_deliverect_order_data
 
 def process_deliverect_order_data():
@@ -24,7 +24,8 @@ def process_deliverect_order_data():
     df = clean_deliverect_product_name(df)
     df = process_deliverect_remove_duplicates(df)
 
-    # Sort the DataFrame by 'OrderPlacedDate', 'OrderPlacedTime', and 'PrimaryKey' to meet your sorting requirements
+    # Arrange Columns and sort the DataFrame by 'OrderPlacedDate', 'OrderPlacedTime', and 'PrimaryKey' to meet your sorting requirements
+    df = column_name_sorter(df)
     df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)
 
     # Create Unique List of PrimaryKey, Location and Brand to filter and correct Item Level Detail
