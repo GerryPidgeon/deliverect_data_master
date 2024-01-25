@@ -14,12 +14,12 @@ from _02b_clean_item_level_data import cleaned_deliverect_item_level_detail_data
 def output_deliverect_data():
     # Initialize DataFrame for data processing
     # The 'imported_deliverect_item_level_detail_data' is assigned to 'df' for processing
-    order_df = cleaned_deliverect_order_data
     item_df = cleaned_deliverect_item_level_detail_data
     price_discrepancies_df = price_discrepancies_data
+
+    # Merge DataFrames together
     item_df = pd.merge(item_df, price_discrepancies_df[['PrimaryKey', 'PriceDifference', 'AOVCheck']], on='PrimaryKey', how='left')
 
-    # 'item_df' is a DataFrame, presumably containing item level detail data previously imported.
     # This line filters 'item_df' to include only those rows where the 'AOVCheck' column has the value 'Price Discrepancies'.
     # These filtered rows are then assigned to a new DataFrame 'amendment_df'.
     amendment_df = item_df[item_df['AOVCheck'] == 'Price Discrepancies']
@@ -50,9 +50,12 @@ def output_deliverect_data():
     item_df['TotalItemCost'] = item_df['TotalItemCost'].round(2)
     item_df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)
 
+    # Drop records that aren't needed
+    item_df = item_df.drop(columns=(['PriceDifference', 'AOVCheck']))
+
     os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
-    item_df.to_csv('Cleaned Item List.csv', index=False)
+    item_df.to_csv('Processed Item Detail Data With Balancing Items.csv', index=False)
 
-    return order_df, item_df, price_discrepancies_df
+    return item_df
 
-output_deliverect_data()
+adjusted_item_level_detail = output_deliverect_data()

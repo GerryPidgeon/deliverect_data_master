@@ -37,6 +37,9 @@ def process_deliverect_order_data():
     # Exclude Single Duplicate of Order 865 at Friedrichshain in Jan 23
     df = df[(df['OrderID'] != '#865') & (df['Location'] != 'Friedrichshain') & (df['OrderPlacedTime'] != '20:05:00')]
 
+    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
+    df.to_csv('Processed Order Data.csv', index=False)
+
     return df, unique_primary_key_list
 
 cleaned_deliverect_order_data, unique_primary_keys = process_deliverect_order_data()

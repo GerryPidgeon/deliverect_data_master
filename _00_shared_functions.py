@@ -150,6 +150,12 @@ def process_deliverect_shared_data(df):
     # This unique identifier helps in distinguishing each order entry unambiguously
     df['PrimaryKey'] = df['OrderID'] + ' - ' + df['Location'] + ' - ' + df['OrderPlacedDate'].astype(str)
     df['PrimaryKeyAlt'] = df['OrderID'] + ' - ' + df['PickupDateDate'].astype(str) + ' - ' + df['PickupDateTime'].astype(str) + ' - ' + df['GrossAOV'].astype(str)
+
+    # Clean records where order date is different
+    df = df.loc[df['PrimaryKey'] != '#B0F15 - Samariterkiez - 2023-05-13']
+    df = df.loc[df['PrimaryKey'] != '#647 - Samariterkiez - 2023-07-01']
+    df = df.loc[df['PrimaryKey'] != '#217 - Samariterkiez - 2023-08-07']
+
     return df
 
 def clean_deliverect_product_name(df):
@@ -192,3 +198,15 @@ def process_deliverect_remove_duplicates(df):
     df = df[df['OrderID'] != '#CustomFormatnan']
     df = df[df['OrderStatus'] != 'Duplicate']
     return df
+
+def check_and_replace_plu_codes(plu_list):
+    new_plu_list = []
+    for item in plu_list:
+        if ': ' in item:  # Check if the item follows the pattern 'code: quantity'
+            plu, quantity = item.split(': ')
+            if not plu.startswith(('P-', 'M-')):
+                plu = 'Missing'
+            new_plu_list.append(f'{plu}: {quantity}')
+        else:
+            new_plu_list.append('Missing')  # Handle the case where there is no ': '
+    return new_plu_list

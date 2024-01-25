@@ -32,6 +32,10 @@ def process_deliverect_item_level_detail_data():
     # Replace Non-Standard ProductPLUs with 'Missing'
     df['ProductPLU'] = np.where(df['ProductPLU'].str.startswith(('P-', 'M-')), df['ProductPLU'], 'Missing')
 
+    # Standardize specific terms in 'ProductName' for consistency, e.g., capitalizing 'Plant-Based'
+    df['ProductName'] = df['ProductName'].str.replace('plant-based', 'Plant-Based', case=False, regex=True)
+    df['ProductName'] = df['ProductName'].str.replace('plant based', 'Plant-Based', case=False, regex=True)
+
     # Exclude Single Duplicate of Order 865 at Friedrichshain in Jan 23
     df = df[~((df['OrderID'] == '#865') & (df['Location'] == 'Friedrichshain') & (df['OrderPlacedTime'] == '20:05:00'))]
 
@@ -87,14 +91,20 @@ def process_deliverect_item_level_detail_data():
     multiple_entry_df = comparison_df.loc[comparison_df['AOVCheck'] == 'Multiple Entries']
     price_discrepancies_df = comparison_df.loc[comparison_df['AOVCheck'] == 'Price Discrepancies']
 
+
     # Arrange Columns and sort the DataFrame by 'OrderPlacedDate', 'OrderPlacedTime', and 'PrimaryKey' to meet your sorting requirements
     df = column_name_sorter(df)
     df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)
 
+    # Create item level PrimaryKey
+    df['PrimaryKeyItem'] = np.where(df['ProductPLU'] == 'Missing',
+                                    df['PrimaryKeyAlt'] + ' ' + df['ProductName'],
+                                    df['PrimaryKeyAlt'] + ' ' + df['ProductPLU'])
+
     # Export CSV for checking
     multiple_entry_df.to_csv('Multiple Entries.csv', index=False)
     price_discrepancies_df.to_csv('Price Discrepancies.csv', index=False)
-    df.to_csv('Item List.csv', index=False)
+    df.to_csv('Processed Item Detail Data.csv', index=False)
 
     return df, price_discrepancies_df
 
