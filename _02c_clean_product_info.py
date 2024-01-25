@@ -53,8 +53,6 @@ def process_clean_item_level_detail():
     # Rename the new columns to 'ProductPLU' and 'ProductName' for clarity
     order_df = order_df.rename(columns={'PLU_Name': 'ProductPLU', 'Product_Name': 'ProductName'})
 
-
-
     # Change Directory
     os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
     order_df.to_csv('Cleaned Item List.csv', index=False)
