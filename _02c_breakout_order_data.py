@@ -82,43 +82,58 @@ def process_clean_item_level_detail():
     order_item_df['ProductName'] = order_item_df['ProductName'].str.replace('plant-based', 'Plant-Based', case=False, regex=True)
     order_item_df['ProductName'] = order_item_df['ProductName'].str.replace('plant based', 'Plant-Based', case=False, regex=True)
 
+    # # Copy the original DataFrame to a new one for adjustments
+    # adj_order_item_df = order_item_df.copy()
+    #
+    # # Convert the 'Quantity' column to a numeric type (int or float) to ensure proper summation
+    # # 'coerce' will set invalid parsing as NaN
+    # adj_order_item_df['Quantity'] = pd.to_numeric(adj_order_item_df['Quantity'], errors='coerce')
+    #
+    # # Create a list of all column names from the DataFrame
+    # adj_order_item_list = adj_order_item_df.columns.tolist()
+    #
+    # # Remove 'Quantity', 'ProductName', and 'ProductPLU' from the list of columns to be concatenated
+    # adj_order_item_list = [item for item in adj_order_item_list if item not in ['Quantity', 'ProductName', 'ProductPLU']]
+    #
+    # # Concatenate the values from the remaining columns into a single column
+    # # Use '|' as a separator to later facilitate splitting
+    # concatenated_column_name = '|'.join(adj_order_item_list)
+    # adj_order_item_df[concatenated_column_name] = adj_order_item_df[adj_order_item_list].apply(lambda x: '|'.join(x.astype(str)), axis=1)
+    #
+    # # Drop the original columns that have been concatenated into the new column
+    # adj_order_item_df = adj_order_item_df.drop(columns=adj_order_item_list)
+    #
+    # # Group the DataFrame by the concatenated column, 'ProductPLU', and 'ProductName'
+    # # Sum the 'Quantity' for each group, effectively aggregating data
+    # adj_order_item_df = adj_order_item_df.groupby([concatenated_column_name, 'ProductPLU', 'ProductName'], as_index=False)['Quantity'].sum()
+    #
+    # # Split the concatenated column back into separate columns using the '|' separator
+    # split_columns = adj_order_item_df[concatenated_column_name].str.split('|', expand=True)
+    #
+    # # Rename the split columns back to their original names
+    # split_columns.columns = adj_order_item_list
+    #
+    # # Drop the concatenated column from the DataFrame as it's no longer needed
+    # adj_order_item_df = adj_order_item_df.drop(columns=[concatenated_column_name])
+    #
+    # # Concatenate the DataFrame consisting of split columns back with the grouped DataFrame
+    # # This restores the original structure of the DataFrame with adjusted 'Quantity'
+    # adj_order_item_df = pd.concat([split_columns, adj_order_item_df], axis=1)
+
+    # Create item level PrimaryKey
+    # adj_order_item_df['PrimaryKeyItem'] = np.where(adj_order_item_df['ProductPLU'] == 'Missing',
+    #                                                adj_order_item_df['PrimaryKeyAlt'] + ' ' + adj_order_item_df['ProductName'],
+    #                                                adj_order_item_df['PrimaryKeyAlt'] + ' ' + adj_order_item_df['ProductPLU'])
 
     # Create item level PrimaryKey
     order_item_df['PrimaryKeyItem'] = np.where(order_item_df['ProductPLU'] == 'Missing',
                                                order_item_df['PrimaryKeyAlt'] + ' ' + order_item_df['ProductName'],
                                                order_item_df['PrimaryKeyAlt'] + ' ' + order_item_df['ProductPLU'])
 
-    # # Create new columns 'Offset OrderID', 'Offset ProductName', and 'Offset ProductPLU' by shifting their respective columns one position up
-    # order_item_df['Offset OrderID'] = order_item_df['OrderID'].shift(-1)
-    # order_item_df['Offset ProductName'] = order_item_df['ProductName'].shift(-1)
-    # order_item_df['Offset ProductPLU'] = order_item_df['ProductPLU'].shift(-1)
-    #
-    # # Create an 'Order Check' column that indicates 'Yes' if 'OrderID' matches the next row's 'Offset OrderID', otherwise 'No'
-    # order_item_df['Order Check'] = np.where(order_item_df['OrderID'] == order_item_df['Offset OrderID'], 'No', 'Yes')
-    #
-    # # Clear the 'Offset ProductName' and 'Offset ProductPLU' entries for the last item in each order when 'Order Check' is 'Yes'
-    # order_item_df['Offset ProductName'] = np.where(order_item_df['Order Check'] == 'Yes', '', order_item_df['Offset ProductName'])
-    # order_item_df['Offset ProductPLU'] = np.where(order_item_df['Order Check'] == 'Yes', '', order_item_df['Offset ProductPLU'])
-    #
-    # # Populate Last Row
-    # order_item_df.iloc[-1, order_item_df.columns.get_loc('Offset OrderID')] = 'Last Row'
-    # order_item_df.iloc[-1, order_item_df.columns.get_loc('Offset ProductName')] = 'Last Row'
-    # order_item_df.iloc[-1, order_item_df.columns.get_loc('Offset ProductPLU')] = 'Last Row'
-    #
-    # # Clean up incorrect 'Regular' and 'Large' records in the 'ProductName' column and Append '[Regular]' to 'ProductName' when 'Offset ProductName' is 'Regular'
-    # order_item_df['ProductName'] = np.where(order_item_df['Offset ProductName'] == 'Regular', order_item_df['ProductName'] + ' [Regular]', order_item_df['ProductName'])
-    # # Clean up incorrect 'Regular' and 'Large' records in the 'ProductName' column and Append '[Large]' to 'ProductName' when 'Offset ProductName' is 'Large'
-    # order_item_df['ProductName'] = np.where(order_item_df['Offset ProductName'] == 'Large', order_item_df['ProductName'] + ' [Large]', order_item_df['ProductName'])
-    # # Remove rows where 'ProductName' is 'Regular' or 'Large'
-    # order_item_df = order_item_df.loc[order_item_df['ProductName'] != 'Regular']
-    # order_item_df = order_item_df.loc[order_item_df['ProductName'] != 'Large']
-    #
-    # # Drop Unneeded Columns
-    # order_item_df = order_item_df.drop(columns=['Offset OrderID', 'Offset ProductName', 'Offset ProductPLU', 'Order Check'])
-
     # Export dataframe for checking
     os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
     order_item_df.to_csv('Expanded Order Data.csv', index=False)
+    # adj_order_item_df.to_csv('Expanded Order Data (adj).csv', index=False)
 
     return order_item_df
 
