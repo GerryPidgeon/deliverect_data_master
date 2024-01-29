@@ -123,6 +123,61 @@ def add_balancing_items():
     # Exporting the processed DataFrame to a CSV file
     price_discrepancies_output_df.to_csv('Processed Item Detail Data With Balancing Items.csv', index=False)
 
-    return price_discrepancies_df
+    return price_discrepancies_output_df
 
 price_discrepancies_output_df = add_balancing_items()
+
+def item_cleaning():
+    # Copying the original DataFrame for safe manipulation without altering the original data
+    output_cleaned_names_df = price_discrepancies_output_df.copy()
+
+    # Remove Spaces at the end of 'ProductName'
+    output_cleaned_names_df['ProductName'] = output_cleaned_names_df['ProductName'].str.strip()
+
+    # Create Check Columns
+    output_cleaned_names_df['OffsetOrderID'] = output_cleaned_names_df['OrderID'].shift(-1)
+    output_cleaned_names_df['OffsetProductName'] = output_cleaned_names_df['ProductName'].shift(-1)
+    output_cleaned_names_df['OffsetProductPLU'] = output_cleaned_names_df['ProductPLU'].shift(-1)
+    output_cleaned_names_df['OffsetItemPrice'] = output_cleaned_names_df['ItemPrice'].shift(-1)
+    output_cleaned_names_df['OffsetTotalItemCost'] = output_cleaned_names_df['TotalItemCost'].shift(-1)
+
+    # Order ID Check
+    output_cleaned_names_df['Order Check'] = np.where(output_cleaned_names_df['OrderID'] == output_cleaned_names_df['OffsetOrderID'], 'No', 'Yes')
+
+    # Clear Last Entry for Each Order
+    output_cleaned_names_df['OffsetProductName'] = np.where(output_cleaned_names_df['Order Check'] == 'Yes', '', output_cleaned_names_df['OffsetProductName'])
+    output_cleaned_names_df['OffsetProductPLU'] = np.where(output_cleaned_names_df['Order Check'] == 'Yes', '', output_cleaned_names_df['OffsetProductPLU'])
+
+    # Populate Last Row
+    output_cleaned_names_df.iloc[-1, output_cleaned_names_df.columns.get_loc('OffsetOrderID')] = 'Last Row'
+    output_cleaned_names_df.iloc[-1, output_cleaned_names_df.columns.get_loc('OffsetProductName')] = 'Last Row'
+    output_cleaned_names_df.iloc[-1, output_cleaned_names_df.columns.get_loc('OffsetProductPLU')] = 'Last Row'
+
+    # Clean up Incorrect Regular Records
+    output_cleaned_names_df['ProductName'] = np.where(output_cleaned_names_df['OffsetProductName'] == 'Regular', output_cleaned_names_df['ProductName'] + ' [Regular]', output_cleaned_names_df['ProductName'])
+    output_cleaned_names_df['ItemPrice'] = np.where(output_cleaned_names_df['OffsetProductName'] == 'Regular', output_cleaned_names_df['ItemPrice'] + output_cleaned_names_df['OffsetItemPrice'], output_cleaned_names_df['ItemPrice'])
+    output_cleaned_names_df['TotalItemCost'] = np.where(output_cleaned_names_df['OffsetProductName'] == 'Regular', output_cleaned_names_df['TotalItemCost'] + output_cleaned_names_df['OffsetTotalItemCost'], output_cleaned_names_df['TotalItemCost'])
+    output_cleaned_names_df = output_cleaned_names_df.loc[output_cleaned_names_df['ProductName'] != 'Regular']
+
+    # Clean up Incorrect Large Records
+    output_cleaned_names_df['ProductName'] = np.where(output_cleaned_names_df['OffsetProductName'] == 'Large', output_cleaned_names_df['ProductName'] + ' [Large]', output_cleaned_names_df['ProductName'])
+    output_cleaned_names_df['ItemPrice'] = np.where(output_cleaned_names_df['OffsetProductName'] == 'Large', output_cleaned_names_df['ItemPrice'] + output_cleaned_names_df['OffsetItemPrice'], output_cleaned_names_df['ItemPrice'])
+    output_cleaned_names_df['TotalItemCost'] = np.where(output_cleaned_names_df['OffsetProductName'] == 'Large', output_cleaned_names_df['TotalItemCost'] + output_cleaned_names_df['OffsetTotalItemCost'], output_cleaned_names_df['TotalItemCost'])
+    output_cleaned_names_df = output_cleaned_names_df.loc[output_cleaned_names_df['ProductName'] != 'Large']
+
+    # Import Cleaned Name List
+    os.chdir(r'H:\Shared drives\97 - Finance Only\02 - COGS Pricing & Forecasting\01 - Combined Product List')
+    cleaned_name_list = pd.read_csv('New Cleaned Product List.csv')
+    output_cleaned_names_df = pd.merge(output_cleaned_names_df, cleaned_name_list[['ProductName', 'ProductPLU', 'CleanedName', 'Price', 'RevShare', 'DishType', 'ItemBrand']], on=['ProductName', 'ProductPLU'], how='left')
+    output_cleaned_names_df['ProductName'] = output_cleaned_names_df['CleanedName']
+    output_cleaned_names_df = output_cleaned_names_df.drop(columns=('CleanedName'))
+
+    # TODO: Add missing items back into the 'New Cleaned Product List.csv'
+
+    # Exporting the processed DataFrame to a CSV file
+    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
+    output_cleaned_names_df.to_csv('Processed Item Detail Data With Cleaned Items.csv', index=False)
+
+    return output_cleaned_names_df
+
+cleaned_names_output_df = item_cleaning()

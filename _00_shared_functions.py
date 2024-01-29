@@ -183,6 +183,7 @@ def clean_deliverect_product_name(df):
     df.loc[:, 'ProductName'] = df['ProductName'].str.replace('Cola 0,5l', 'Cola 0.5l')
     df.loc[:, 'ProductName'] = df['ProductName'].str.replace('Salsa, 30ml', 'Salsa 30ml')
     df.loc[:, 'ProductName'] = df['ProductName'].str.replace('Italien,', 'Italien')
+
     return df
 
 def process_deliverect_remove_duplicates(df):
