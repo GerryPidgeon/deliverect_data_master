@@ -9,8 +9,8 @@ import csv
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # Import specific data and functions from external modules
-from _00_shared_functions import column_name_cleaner, column_name_sorter, convert_to_custom_format, process_deliverect_shared_data, clean_deliverect_product_name, process_deliverect_remove_duplicates
-from _01_raw_import import imported_deliverect_order_data, imported_deliverect_item_level_detail_data
+from D00_shared_functions import column_name_cleaner, column_name_sorter, convert_to_custom_format, process_deliverect_shared_data, clean_deliverect_product_name, process_deliverect_remove_duplicates
+from D01_raw_import import imported_deliverect_order_data, imported_deliverect_item_level_detail_data
 
 def process_deliverect_order_data():
     # Initialize DataFrame for data processing
@@ -34,11 +34,9 @@ def process_deliverect_order_data():
         unique_primary_key_df = unique_primary_key_df.drop_duplicates()
         return unique_primary_key_df
 
-    # Exclude Single Duplicate of Order 865 at Friedrichshain in Jan 23
-    df = df[(df['OrderID'] != '#865') & (df['Location'] != 'Friedrichshain') & (df['OrderPlacedTime'] != '20:05:00')]
-
-    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
-    df.to_csv('Processed Order Data.csv', index=False)
+    # Export data for checking
+    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Python Output')
+    df.to_csv('D02A - Cleaned Raw Order Data.csv', index=False)
 
     return df, unique_primary_key_list
 
@@ -130,15 +128,12 @@ def process_deliverect_item_level_detail_data():
     df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)
 
     # Create item level PrimaryKey
-    df['PrimaryKeyItem'] = np.where(df['ProductPLU'] == 'Missing',
-                                    df['PrimaryKeyAlt'] + ' ' + df['ProductName'],
-                                    df['PrimaryKeyAlt'] + ' ' + df['ProductPLU'])
+    df['PrimaryKeyItem'] = np.where(df['ProductPLU'] == 'Missing', df['PrimaryKeyAlt'] + ' ' + df['ProductName'], df['PrimaryKeyAlt'] + ' ' + df['ProductPLU'])
 
     # Export CSV for checking
     multiple_entry_df.to_csv('Multiple Entries.csv', index=False)
     price_discrepancies_df.to_csv('Price Discrepancies.csv', index=False)
-    df.to_csv('Processed Item Detail Data.csv', index=False)
 
-    return df, price_discrepancies_df
+    return df, multiple_entry_df, price_discrepancies_df
 
-cleaned_deliverect_item_level_detail_data, price_discrepancies_data = process_deliverect_item_level_detail_data()
+cleaned_deliverect_item_level_detail_data, multiple_entry_data, price_discrepancies_data = process_deliverect_item_level_detail_data()

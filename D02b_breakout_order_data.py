@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # Import specific data and functions from external modules
-from _02a_clean_raw_data import cleaned_deliverect_order_data
+from D02a_clean_raw_data import cleaned_deliverect_order_data
 
 def process_clean_item_level_detail():
     # Initialize DataFrame for data processing
@@ -73,13 +73,7 @@ def process_clean_item_level_detail():
     order_item_df['Quantity'] = pd.to_numeric(order_item_df['Quantity'], errors='coerce')
 
     # Create item level PrimaryKey
-    order_item_df['PrimaryKeyItem'] = np.where(order_item_df['ProductPLU'] == 'Missing',
-                                               order_item_df['PrimaryKeyAlt'] + ' ' + order_item_df['ProductName'],
-                                               order_item_df['PrimaryKeyAlt'] + ' ' + order_item_df['ProductPLU'])
-
-    # Export dataframe for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
-    order_item_df.to_csv('Expanded Order Data.csv', index=False)
+    order_item_df['PrimaryKeyItem'] = np.where(order_item_df['ProductPLU'] == 'Missing', order_item_df['PrimaryKeyAlt'] + ' ' + order_item_df['ProductName'], order_item_df['PrimaryKeyAlt'] + ' ' + order_item_df['ProductPLU'])
 
     return order_item_df
 

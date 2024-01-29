@@ -9,9 +9,9 @@ import datetime
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # Import specific data and functions from external modules
-from _00_shared_functions import column_name_sorter
-from _02b_breakout_order_data import broken_out_order_data
-from _02a_clean_raw_data import cleaned_deliverect_item_level_detail_data
+from D00_shared_functions import column_name_sorter
+from D02b_breakout_order_data import broken_out_order_data
+from D02a_clean_raw_data import cleaned_deliverect_item_level_detail_data
 
 def output_deliverect_data():
     # Initialize DataFrame for data processing
@@ -230,7 +230,8 @@ def combine_like_items():
     combine_like_items_df = combine_like_items_df.drop(columns=('DriverTip'))
 
     # Save to CSV
-    combine_like_items_df.to_csv('Combined Item Detail Data With Cleaned Items.csv', index=False)
+    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Python Output')
+    combine_like_items_df.to_csv('Deliverect Item Level Detail by Order.csv', index=False)
 
     return combine_like_items_df
 
@@ -249,18 +250,61 @@ def create_output():
     final_output = final_output.merge(dessert_aov, on='PrimaryKey', how='left')
     final_output = final_output.merge(drink_aov, on='PrimaryKey', how='left')
 
+    # Replace Blanks with 0
+    # Replace NaN with 0 and ensure the columns are of float type
+    final_output['FoodAOV'] = final_output['FoodAOV'].fillna(0).astype(float)
+    final_output['DessertAOV'] = final_output['DessertAOV'].fillna(0).astype(float)
+    final_output['DrinkAOV'] = final_output['DrinkAOV'].fillna(0).astype(float)
+
     # Create Concat View of ProductPLU and ProductNames
     final_output['ProductPLUConcat'] = final_output['ProductPLU'] + ": Qty " + final_output['ItemQuantity'].astype(int).astype(str)
     final_output['ProductNameConcat'] = final_output['ProductName'] + ": Qty " + final_output['ItemQuantity'].astype(int).astype(str) + ': Price ' + final_output['TotalItemCost'].apply(lambda x: f"{x:.2f}")
 
     # Drop Columns that aren't needed
+    final_output = final_output.drop(columns=(['Price', 'RevShare', 'DishType', 'ItemBrand']))
 
+    # Create a summary DataFrame that contains combined strings for 'ProductPLUConcat' and 'ProductNameConcat'
+    product_detail_df = final_output.groupby('PrimaryKey').agg({'ProductPLUConcat': '; '.join, 'ProductNameConcat': '; '.join}).reset_index()
 
+    # Merge the summary information back into the original DataFrame
+    final_output = final_output.merge(product_detail_df, on='PrimaryKey', suffixes=('', '_combined'))
 
-    # final_output = final_output.groupby('PrimaryKey').agg({'ProductPLUConcat': lambda x: '; '.join(x),'ProductNameConcat': lambda x: '; '.join(x)}).reset_index()
+    # Rename the '_combined' columns to the original names
+    final_output['ProductPLU'] = final_output['ProductPLUConcat_combined']
+    final_output['ProductName'] = final_output['ProductNameConcat_combined']
+
+    # Drop the original 'ProductPLUConcat' and 'ProductNameConcat' columns
+    final_output.drop(columns=['ItemPrice', 'ItemQuantity', 'TotalItemCost', 'ProductPLUConcat', 'ProductNameConcat', 'ProductPLUConcat_combined', 'ProductNameConcat_combined'], inplace=True)
+
+    # Drop duplicates based on 'PrimaryKey' to keep only one record for each 'PrimaryKey'
+    final_output = final_output.drop_duplicates(subset='PrimaryKey')
+
+    # Set DataType
+    string_columns = ['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'LocWithBrand', 'Brand', 'OrderID', 'Channel', 'OrderStatus', 'DeliveryType', 'PaymentType', 'ProductPLU', 'ProductName']
+    float_columns = ['GrossAOV', 'PromotionsOnItems', 'DeliveryFee', 'Tips', 'FoodAOV', 'DessertAOV', 'DrinkAOV']
+    date_columns = ['OrderPlacedDate']
+    time_columns = ['OrderPlacedTime']
+    boolean_columns = ['IsTestOrder']
+
+    # Convert string columns
+    for col in string_columns:
+        final_output[col] = final_output[col].astype(str)
+
+    # Convert float columns
+    for col in float_columns:
+        final_output[col] = final_output[col].astype(float)
+
+    # Convert boolean columns
+    for col in boolean_columns:
+        final_output[col] = final_output[col].astype(bool)
+
+    # Order Columns for Final Output
+    final_output = final_output[['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'LocWithBrand', 'Brand', 'OrderID', 'OrderPlacedDate', 'OrderPlacedTime', 'Channel', 'OrderStatus', 'DeliveryType', 'GrossAOV', 'FoodAOV',
+                                 'DessertAOV', 'DrinkAOV', 'PromotionsOnItems', 'DeliveryFee', 'Tips', 'IsTestOrder', 'PaymentType', 'ProductPLU', 'ProductName']]
 
     # Save to CSV
-    final_output.to_csv('Final Output.csv', index=False)
+    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Python Output')
+    final_output.to_csv('Deliverect Data.csv', index=False)
 
     return final_output
 

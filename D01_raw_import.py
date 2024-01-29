@@ -31,6 +31,10 @@ def load_deliverect_order_data():
         # Create an empty DataFrame if no CSV files were found in the directory
         df = pd.DataFrame()
 
+    # Export data for checking
+    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Python Output')
+    df.to_csv('D01 - Raw Order Data.csv', index=False)
+
     return df
 
 imported_deliverect_order_data = load_deliverect_order_data()
