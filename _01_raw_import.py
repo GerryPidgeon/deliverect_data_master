@@ -30,6 +30,7 @@ def load_deliverect_order_data():
     else:
         # Create an empty DataFrame if no CSV files were found in the directory
         df = pd.DataFrame()
+
     return df
 
 imported_deliverect_order_data = load_deliverect_order_data()
