@@ -26,7 +26,7 @@ def column_name_cleaner(df):
         'Rebate': 'Rebate',
         'Note': 'Note',
         'ServiceCharge': 'ServiceCharge',
-        'DeliveryCost': 'DeliveryCost',
+        'DeliveryCost': 'DeliveryFee',
         'DiscountTotal': 'PromotionsOnItems',
         'Tip': 'RxTip',
         'DriverTip': 'DriverTip',
@@ -55,7 +55,7 @@ def column_name_cleaner(df):
 def column_name_sorter(df):
     # List of columns in the order you want them to be
     column_order = ['PrimaryKey', 'PrimaryKeyAlt', 'Location', 'LocWithBrand', 'Brand', 'OrderID', 'OrderPlacedDate', 'OrderPlacedTime',
-                    'Channel', 'OrderStatus', 'DeliveryType', 'GrossAOV', 'PromotionsOnItems', 'DeliveryFee', 'DriverTip', 'IsTestOrder',
+                    'Channel', 'OrderStatus', 'DeliveryType', 'GrossAOV', 'PromotionsOnItems', 'DeliveryFee', 'RxTip', 'DriverTip', 'IsTestOrder',
                     'PaymentType', 'ProductPLU', 'ProductName', 'CleanedName', 'PickupTime', 'ItemPrice', 'ItemQuantity', 'TotalItemCost']
 
     # Select only the columns that exist in the DataFrame

@@ -165,12 +165,15 @@ def item_cleaning():
     output_cleaned_names_df['TotalItemCost'] = np.where(output_cleaned_names_df['OffsetProductName'] == 'Large', output_cleaned_names_df['TotalItemCost'] + output_cleaned_names_df['OffsetTotalItemCost'], output_cleaned_names_df['TotalItemCost'])
     output_cleaned_names_df = output_cleaned_names_df.loc[output_cleaned_names_df['ProductName'] != 'Large']
 
+    # Remove ProductPLU that start with 'M-' and ItemPrice = 0
+    output_cleaned_names_df = output_cleaned_names_df[~((output_cleaned_names_df['ProductPLU'].str.startswith('M-')) & (output_cleaned_names_df['ItemPrice'] == 0))]
+
     # Import Cleaned Name List
     os.chdir(r'H:\Shared drives\97 - Finance Only\02 - COGS Pricing & Forecasting\01 - Combined Product List')
     cleaned_name_list = pd.read_csv('New Cleaned Product List.csv')
     output_cleaned_names_df = pd.merge(output_cleaned_names_df, cleaned_name_list[['ProductName', 'ProductPLU', 'CleanedName', 'Price', 'RevShare', 'DishType', 'ItemBrand']], on=['ProductName', 'ProductPLU'], how='left')
     output_cleaned_names_df['ProductName'] = output_cleaned_names_df['CleanedName']
-    output_cleaned_names_df = output_cleaned_names_df.drop(columns=('CleanedName'))
+    output_cleaned_names_df = output_cleaned_names_df.drop(columns=(['CleanedName', 'OffsetOrderID', 'OffsetProductName', 'OffsetProductPLU', 'OffsetItemPrice',	'OffsetTotalItemCost', 'Order Check']))
 
     # TODO: Add missing items back into the 'New Cleaned Product List.csv'
 
@@ -181,3 +184,84 @@ def item_cleaning():
     return output_cleaned_names_df
 
 cleaned_names_output_df = item_cleaning()
+
+def combine_like_items():
+    combine_like_items_df = cleaned_names_output_df.copy()
+
+    # Specify the columns to keep separate
+    all_columns = combine_like_items_df.columns.to_list()
+    first_columns = ['PrimaryKeyAlt', 'ProductPLU', 'ProductName', 'ItemPrice', 'ItemQuantity', 'TotalItemCost']
+    remaining_columns = [item for item in all_columns if item not in first_columns]
+
+    # Concatenate the values from the remaining columns into a single column
+    concatenated_column_name = '|'.join(remaining_columns)
+    combine_like_items_df[concatenated_column_name] = combine_like_items_df[remaining_columns].apply(lambda x: '|'.join(x.astype(str)), axis=1)
+
+    # Group by 'PrimaryKeyAlt', 'ProductPLU', 'ProductName', and sum 'ItemPrice', 'ItemQuantity', 'TotalItemCost'
+    group_columns = ['PrimaryKeyAlt', 'ProductPLU', 'ProductName', concatenated_column_name]
+    aggregated_columns = {'ItemPrice': 'sum', 'ItemQuantity': 'sum', 'TotalItemCost': 'sum'}
+    combine_like_items_df = combine_like_items_df.groupby(group_columns, as_index=False).agg(aggregated_columns)
+
+    # Split the concatenated column back into individual columns
+    split_columns = combine_like_items_df[concatenated_column_name].str.split('|', expand=True)
+    split_columns.columns = remaining_columns
+
+    # Concatenate the split columns back with the aggregated data
+    combine_like_items_df = pd.concat([combine_like_items_df[group_columns + ['ItemPrice', 'ItemQuantity', 'TotalItemCost']], split_columns], axis=1)
+
+    # Drop the concatenated column as it is no longer needed
+    combine_like_items_df = combine_like_items_df.drop(columns=[concatenated_column_name])
+
+    # Sort the DataFrame columns in the original order
+    combine_like_items_df = combine_like_items_df[all_columns]
+    combine_like_items_df.sort_values(['OrderPlacedDate', 'OrderPlacedTime', 'PrimaryKey'], inplace=True)
+
+    # Combine Tips
+    combine_like_items_df['RxTip'] = combine_like_items_df['RxTip'].astype(str)
+    combine_like_items_df['RxTip'] = combine_like_items_df['RxTip'].replace('', 0)
+    combine_like_items_df['RxTip'] = pd.to_numeric(combine_like_items_df['RxTip'], errors='coerce')
+
+    combine_like_items_df['DriverTip'] = combine_like_items_df['DriverTip'].astype(str)
+    combine_like_items_df['DriverTip'] = combine_like_items_df['DriverTip'].replace('', 0)
+    combine_like_items_df['DriverTip'] = pd.to_numeric(combine_like_items_df['DriverTip'], errors='coerce')
+
+    combine_like_items_df['RxTip'] = combine_like_items_df['RxTip'] + combine_like_items_df['DriverTip']
+    combine_like_items_df = combine_like_items_df.rename(columns={'RxTip': 'Tips'})
+    combine_like_items_df = combine_like_items_df.drop(columns=('DriverTip'))
+
+    # Save to CSV
+    combine_like_items_df.to_csv('Combined Item Detail Data With Cleaned Items.csv', index=False)
+
+    return combine_like_items_df
+
+combine_like_items_df = combine_like_items()
+
+def create_output():
+    final_output = combine_like_items_df.copy()
+
+    # Create Food, Drink and Dessert AOV
+    food_aov = final_output[final_output['RevShare'] == 'Food'].groupby('PrimaryKey')['TotalItemCost'].sum().rename('FoodAOV')
+    dessert_aov = final_output[final_output['RevShare'] == 'Dessert'].groupby('PrimaryKey')['TotalItemCost'].sum().rename('DessertAOV')
+    drink_aov = final_output[final_output['RevShare'] == 'Drink'].groupby('PrimaryKey')['TotalItemCost'].sum().rename('DrinkAOV')
+
+    # Merge DataFrames
+    final_output = final_output.merge(food_aov, on='PrimaryKey', how='left')
+    final_output = final_output.merge(dessert_aov, on='PrimaryKey', how='left')
+    final_output = final_output.merge(drink_aov, on='PrimaryKey', how='left')
+
+    # Create Concat View of ProductPLU and ProductNames
+    final_output['ProductPLUConcat'] = final_output['ProductPLU'] + ": Qty " + final_output['ItemQuantity'].astype(int).astype(str)
+    final_output['ProductNameConcat'] = final_output['ProductName'] + ": Qty " + final_output['ItemQuantity'].astype(int).astype(str) + ': Price ' + final_output['TotalItemCost'].apply(lambda x: f"{x:.2f}")
+
+    # Drop Columns that aren't needed
+
+
+
+    # final_output = final_output.groupby('PrimaryKey').agg({'ProductPLUConcat': lambda x: '; '.join(x),'ProductNameConcat': lambda x: '; '.join(x)}).reset_index()
+
+    # Save to CSV
+    final_output.to_csv('Final Output.csv', index=False)
+
+    return final_output
+
+create_output()
