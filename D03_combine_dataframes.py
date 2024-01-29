@@ -308,4 +308,4 @@ def create_output():
 
     return final_output
 
-create_output()
+final_output_df = create_output()
