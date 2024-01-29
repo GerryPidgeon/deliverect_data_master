@@ -160,8 +160,8 @@ def process_deliverect_shared_data(df):
 
 def clean_deliverect_product_name(df):
     # Replace NaN values in 'ProductName' with an empty string
-    df['ProductName'] = df['ProductName'].fillna('')
-    df['ProductPLU'] = df['ProductPLU'].fillna('')
+    df['ProductName'] = df['ProductName'].fillna('').str.strip()
+    df['ProductPLU'] = df['ProductPLU'].fillna('').str.strip()
 
     # Correct character encoding issues in 'ProductName'
     # Encoding and then decoding with 'latin-1' helps fix any special characters or encoding errors
