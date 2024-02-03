@@ -40,7 +40,7 @@ def process_deliverect_order_data():
     unique_primary_key_df = unique_primary_key_list(df)
 
     # Export data for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Cleaned Data')
     df.to_csv('D02A - Cleaned Raw Order Data.csv', index=False)
 
     return df, unique_primary_key_df
@@ -132,7 +132,7 @@ def process_deliverect_item_level_detail_data():
     price_discrepancies_df.to_csv('Price Discrepancies.csv', index=False)
 
     # Save main DataFrame for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Cleaned Data')
     df.to_csv('D02A - Cleaned Raw Item Level Data.csv', index=False)
 
     return df, price_discrepancies_df

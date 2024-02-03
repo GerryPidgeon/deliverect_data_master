@@ -80,7 +80,7 @@ def process_clean_item_level_detail():
     order_item_df['PrimaryKeyItem'] = np.where(order_item_df['ProductPLU'] == 'Missing', order_item_df['PrimaryKeyAlt'] + ' ' + order_item_df['ProductName'], order_item_df['PrimaryKeyAlt'] + ' ' + order_item_df['ProductPLU'])
 
     # Save main DataFrame for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Cleaned Data')
     order_item_df.to_csv('D02B - Broken Out Item Level Data.csv', index=False)
 
     return order_item_df

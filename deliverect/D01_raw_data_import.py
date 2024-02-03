@@ -38,7 +38,7 @@ def load_deliverect_order_data():
         df = pd.DataFrame()
 
     # Export data for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Raw Data')
     df.to_csv('D01 - Raw Order Data.csv', index=False)
 
     return df
@@ -71,7 +71,7 @@ def load_deliverect_item_level_detail_data():
         df = pd.DataFrame()
 
     # Export data for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Raw Data')
     df.to_csv('D01 - Raw Item Level Data.csv', index=False)
 
     return df

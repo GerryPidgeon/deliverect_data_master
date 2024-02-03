@@ -64,7 +64,7 @@ def output_deliverect_data():
     output_df['TotalItemCost'] = output_df['TotalItemCost'].fillna(0)
 
     # Export the DataFrame to a CSV file for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Cleaned Data')
     output_df.to_csv('D03 - Final Item Detail Master.csv', index=False)
 
     return output_df, order_df, item_df
@@ -124,7 +124,7 @@ def add_balancing_items():
     price_discrepancies_output_df = column_name_sorter(price_discrepancies_output_df)
 
     # Export the DataFrame to a CSV file for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Cleaned Data')
     price_discrepancies_output_df.to_csv('D03 - Processed Item Detail Data With Balancing Items.csv', index=False)
 
     return price_discrepancies_output_df
@@ -193,7 +193,7 @@ def item_cleaning():
     output_cleaned_names_df = output_cleaned_names_df.drop(columns=(['CleanedName', 'OffsetOrderID', 'OffsetProductName', 'OffsetProductPLU', 'OffsetItemPrice',	'OffsetTotalItemCost', 'Order Check']))
 
     # Export the DataFrame to a CSV file for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Cleaned Data')
     output_cleaned_names_df.to_csv('D03 - Processed Item Detail Data With Cleaned Names.csv', index=False)
 
     return output_cleaned_names_df
@@ -245,9 +245,9 @@ def combine_like_items():
     combine_like_items_df = combine_like_items_df.drop(columns=('DriverTip'))
 
     # Save to CSV
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Cleaned Data')
     combine_like_items_df.to_csv('D03 - Processed Item Detail Data With Combined Items.csv', index=False)
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Processed Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\05 - Processed Data')
     combine_like_items_df.to_csv('Deliverect Item Level Detail by Order.csv', index=False)
 
     return combine_like_items_df
@@ -320,7 +320,7 @@ def create_output():
                                  'DessertAOV', 'DrinkAOV', 'PromotionsOnItems', 'DeliveryFee', 'Tips', 'IsTestOrder', 'PaymentType', 'ProductPLU', 'ProductName']]
 
     # Save to CSV
-    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Processed Data')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\05 - Processed Data')
     final_output.to_csv('Deliverect Data.csv', index=False)
 
     return final_output
