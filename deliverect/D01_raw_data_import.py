@@ -2,6 +2,12 @@ import pandas as pd
 import numpy as np
 import os
 import sys
+import datetime as dt
+from datetime import datetime, timedelta
+
+# Update system path to include parent directories for module access
+# This allows the script to import modules from two directories up in the folder hierarchy
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # Path to the Deliverect source folder containing order details and documents
 deliverect_source_folder = r'H:\Shared drives\97 - Finance Only\01 - Orders & 3PL Documents\00 - All Restaurants\00 - Deliverect'
@@ -32,7 +38,7 @@ def load_deliverect_order_data():
         df = pd.DataFrame()
 
     # Export data for checking
-    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Python Output')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
     df.to_csv('D01 - Raw Order Data.csv', index=False)
 
     return df
@@ -63,6 +69,11 @@ def load_deliverect_item_level_detail_data():
     else:
         # Create an empty DataFrame if no CSV files were found in the directory
         df = pd.DataFrame()
+
+    # Export data for checking
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    df.to_csv('D01 - Raw Item Level Data.csv', index=False)
+
     return df
 
 imported_deliverect_item_level_detail_data = load_deliverect_item_level_detail_data()

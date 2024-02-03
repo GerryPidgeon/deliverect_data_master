@@ -2,11 +2,17 @@ import pandas as pd
 import numpy as np
 import os
 import sys
-from datetime import datetime
+import datetime as dt
+from datetime import datetime, timedelta
 
-# Rename all columns to standard notation
+# Update system path to include parent directories for module access
+# This allows the script to import modules from two directories up in the folder hierarchy
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+# Import specific data and functions from external modules
+from shared_functions.S00_shared_functions import clean_rx_names, convert_to_custom_format
+
 def column_name_cleaner(df):
-
     df = df.rename(columns={
         'PickupTime': 'PickupDateTimeLocal',
         'PickupTimeUTC': 'PickupDateTimeUTC',
@@ -65,49 +71,12 @@ def column_name_sorter(df):
     df = df[existing_columns]
 
     return df
-
-
-# Fix Issue Where Order ID's with an E as the 3rd character comes in as a scientific number
-def convert_to_custom_format(scientific_notation):
-    if isinstance(scientific_notation, str):
-        try:
-            coefficient, exponent = scientific_notation.split('E+')
-            coefficient = coefficient.replace('.', '')
-            new_exponent = int(exponent) - 2
-            return f"{coefficient}E{new_exponent}"
-        except ValueError:
-            # Handle non-convertible values here (e.g., return the original value)
-            return scientific_notation
-    elif isinstance(scientific_notation, (int, float)):
-        # Handle float or int values here (e.g., convert them to a custom format)
-        # You can decide how to format them according to your requirements
-        return f"CustomFormat{scientific_notation}"
-    else:
-        # Handle other data types (e.g., return the original value)
-        return scientific_notation
-
-
-# Clean Locations to standard notation
-def clean_location_names(df):
-   # Clean Location
-   cleaned_names = pd.read_csv(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\01 - Restaurant Names\Full Rx List, with Cleaned Names.csv')
-   df['Location'] = df['Location'].str.replace('ö', 'o').str.replace('ü', 'u')
-   df = pd.merge(df, cleaned_names[['Location', 'Cleaned Name']], on='Location', how='left')
-   df = df.rename(columns={'Cleaned Name': 'Cleaned Location'})
-   df['Location'] = df['Cleaned Location']
-   df = df.drop(columns=['Cleaned Location'])
-   return df
-
-# Each DataFrame has the metedata of 'PrimaryKey', 'OrderID', 'OrderPlacedDate', 'OrderPlacedTime', 'Brand', 'Location', 'LocWithBrand', 'Channel' and 'OrderStatus'.
-# This code standardises these fields, for Deliverect Data
 def process_deliverect_shared_data(df):
     # Convert 'OrderID' to string and prepend each ID with a '#' symbol
     # 'astype(str)' is used to ensure 'OrderID' is treated as a string for concatenation
     df['OrderID'] = '#' + df['OrderID'].astype(str)
 
     # Convert and standardize the 'OrderPlacedDateTime' to UTC, then to 'Europe/Berlin' timezone
-    # This ensures consistency in time representation across the dataset
-    # Additionally, separate the date and time components for more granular analysis
     df['OrderPlacedDateTime'] = pd.to_datetime(df['OrderPlacedDateTimeUTC']).dt.tz_localize('UTC')
     df['OrderPlacedDateTime'] = df['OrderPlacedDateTime'].dt.tz_convert('Europe/Berlin')
     df['OrderPlacedDate'] = df['OrderPlacedDateTime'].dt.date
@@ -130,10 +99,6 @@ def process_deliverect_shared_data(df):
     # Further standardize 'Brand' names by replacing any occurrence of 'beast' with 'Birria' and others with 'Birdie'
     df['Brand'] = np.where(df['Brand'].str.contains('beast', case=False), 'Birria', 'Birdie')
 
-    # Clean and standardize location names using a shared function
-    # df['Location'] = df['Location'].str.strip() # Clean up the Full Rx List, with Cleaned Names.csv
-    df = clean_location_names(df)
-
     # Fix Hamburg Bergedorf and Bremen Steintor (Deliverect License was re-used)
     comparison_date = datetime.strptime('2023-09-30', '%Y-%m-%d').date()  # Convert string to datetime.date
     df['Location'] = np.where((df['Location'] == 'Bremen Steintor') & (df['OrderPlacedDate'] <= comparison_date), 'Hamburg Bergedorf',df['Location'])
@@ -148,8 +113,9 @@ def process_deliverect_shared_data(df):
 
     # Construct a 'PrimaryKey' for each row by concatenating 'OrderID', 'Location', and 'OrderPlacedDate'
     # This unique identifier helps in distinguishing each order entry unambiguously
-    df['PrimaryKey'] = df['OrderID'] + ' - ' + df['Location'] + ' - ' + df['OrderPlacedDate'].astype(str)
-    df['PrimaryKeyAlt'] = df['OrderID'] + ' - ' + df['PickupDateDate'].astype(str) + ' - ' + df['PickupDateTime'].astype(str) + ' - ' + df['GrossAOV'].astype(str)
+    df = df.copy() # This gets rid of the Warning
+    df.loc[:, 'PrimaryKey'] = df['OrderID'] + ' - ' + df['Location'] + ' - ' + df['OrderPlacedDate'].astype(str)
+    df.loc[:, 'PrimaryKeyAlt'] = df['OrderID'] + ' - ' + df['PickupDateDate'].astype(str) + ' - ' + df['PickupDateTime'].astype(str) + ' - ' + df['GrossAOV'].astype(str)
 
     # Clean records where order date is different
     df = df.loc[df['PrimaryKey'] != '#B0F15 - Samariterkiez - 2023-05-13']
@@ -199,15 +165,3 @@ def process_deliverect_remove_duplicates(df):
     df = df[df['OrderID'] != '#CustomFormatnan']
     df = df[df['OrderStatus'] != 'Duplicate']
     return df
-
-def check_and_replace_plu_codes(plu_list):
-    new_plu_list = []
-    for item in plu_list:
-        if ': ' in item:  # Check if the item follows the pattern 'code: quantity'
-            plu, quantity = item.split(': ')
-            if not plu.startswith(('P-', 'M-')):
-                plu = 'Missing'
-            new_plu_list.append(f'{plu}: {quantity}')
-        else:
-            new_plu_list.append('Missing')  # Handle the case where there is no ': '
-    return new_plu_list

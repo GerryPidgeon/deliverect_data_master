@@ -2,16 +2,18 @@ import pandas as pd
 import numpy as np
 import os
 import sys
-import datetime
+import datetime as dt
+from datetime import datetime, timedelta
 
 # Update system path to include parent directories for module access
 # This allows the script to import modules from two directories up in the folder hierarchy
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # Import specific data and functions from external modules
-from D00_shared_functions import column_name_sorter
-from D02b_breakout_order_data import broken_out_order_data
-from D02a_clean_raw_data import cleaned_deliverect_item_level_detail_data
+from external_data.E01_raw_import import cleaned_item_name_csv
+from deliverect.D00_shared_functions import column_name_sorter
+from deliverect.D02a_clean_raw_data import cleaned_deliverect_item_level_detail_data
+from deliverect.D02b_breakout_item_level_data import broken_out_order_data
 
 def output_deliverect_data():
     # Initialize DataFrame for data processing
@@ -23,7 +25,7 @@ def output_deliverect_data():
     output_df = order_df.copy()
 
     # Filter to exclude records from before 1st Jan 2023
-    filter_date = datetime.date(2023, 1, 1)
+    filter_date = datetime(2023, 1, 1).date()
     output_df = output_df.loc[output_df['OrderPlacedDate'] >= filter_date]
 
     # Merge the dataframes together
@@ -62,7 +64,8 @@ def output_deliverect_data():
     output_df['TotalItemCost'] = output_df['TotalItemCost'].fillna(0)
 
     # Export the DataFrame to a CSV file for checking
-    output_df.to_csv('Final Item Detail Master.csv', index=False)
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    output_df.to_csv('D03 - Final Item Detail Master.csv', index=False)
 
     return output_df, order_df, item_df
 
@@ -120,8 +123,9 @@ def add_balancing_items():
     # Calling an external function to sort columns
     price_discrepancies_output_df = column_name_sorter(price_discrepancies_output_df)
 
-    # Exporting the processed DataFrame to a CSV file
-    price_discrepancies_output_df.to_csv('Processed Item Detail Data With Balancing Items.csv', index=False)
+    # Export the DataFrame to a CSV file for checking
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    price_discrepancies_output_df.to_csv('D03 - Processed Item Detail Data With Balancing Items.csv', index=False)
 
     return price_discrepancies_output_df
 
@@ -130,9 +134,6 @@ price_discrepancies_output_df = add_balancing_items()
 def item_cleaning():
     # Copying the original DataFrame for safe manipulation without altering the original data
     output_cleaned_names_df = price_discrepancies_output_df.copy()
-
-    # Remove Spaces at the end of 'ProductName'
-    output_cleaned_names_df['ProductName'] = output_cleaned_names_df['ProductName'].str.strip()
 
     # Create Check Columns
     output_cleaned_names_df['OffsetOrderID'] = output_cleaned_names_df['OrderID'].shift(-1)
@@ -168,18 +169,32 @@ def item_cleaning():
     # Remove ProductPLU that start with 'M-' and ItemPrice = 0
     output_cleaned_names_df = output_cleaned_names_df[~((output_cleaned_names_df['ProductPLU'].str.startswith('M-')) & (output_cleaned_names_df['ItemPrice'] == 0))]
 
-    # Import Cleaned Name List
-    os.chdir(r'H:\Shared drives\97 - Finance Only\02 - COGS Pricing & Forecasting\01 - Combined Product List')
-    cleaned_name_list = pd.read_csv('New Cleaned Product List.csv')
-    output_cleaned_names_df = pd.merge(output_cleaned_names_df, cleaned_name_list[['ProductName', 'ProductPLU', 'CleanedName', 'Price', 'RevShare', 'DishType', 'ItemBrand']], on=['ProductName', 'ProductPLU'], how='left')
+    # Clean ProductNames to standardise output
+    output_cleaned_names_df = pd.merge(output_cleaned_names_df, cleaned_item_name_csv[['ProductName', 'ProductPLU', 'CleanedName', 'Price', 'RevShare', 'DishType', 'ItemBrand']], on=['ProductName', 'ProductPLU'], how='left')
+
+    # Populate CSV With Missing Items
+    missing_items_list = output_cleaned_names_df[['ProductPLU', 'ProductName', 'CleanedName']]
+    missing_items_list['CleanedName'].replace('', np.nan)
+    missing_items_list = missing_items_list.loc[missing_items_list['CleanedName'].isna()]
+    missing_items_list = missing_items_list.drop_duplicates()
+    output_csv = pd.concat([cleaned_item_name_csv, missing_items_list], ignore_index=True)
+
+    # Save Files
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\01 - Supporting Files')
+    try:
+        os.remove('Cleaned Item Name List (Old).csv')
+    except FileNotFoundError:
+        pass
+    os.rename('Cleaned Item Name List.csv', 'Cleaned Item Name List (Old).csv')
+    output_csv.to_csv('Cleaned Item Name List.csv', index=False)
+
+    # Clean ProductNames to standardise output
     output_cleaned_names_df['ProductName'] = output_cleaned_names_df['CleanedName']
     output_cleaned_names_df = output_cleaned_names_df.drop(columns=(['CleanedName', 'OffsetOrderID', 'OffsetProductName', 'OffsetProductPLU', 'OffsetItemPrice',	'OffsetTotalItemCost', 'Order Check']))
 
-    # TODO: Add missing items back into the 'New Cleaned Product List.csv'
-
-    # Exporting the processed DataFrame to a CSV file
-    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Data Checking')
-    output_cleaned_names_df.to_csv('Processed Item Detail Data With Cleaned Items.csv', index=False)
+    # Export the DataFrame to a CSV file for checking
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    output_cleaned_names_df.to_csv('D03 - Processed Item Detail Data With Cleaned Names.csv', index=False)
 
     return output_cleaned_names_df
 
@@ -230,7 +245,9 @@ def combine_like_items():
     combine_like_items_df = combine_like_items_df.drop(columns=('DriverTip'))
 
     # Save to CSV
-    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Python Output')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\03 - Cleaned Data')
+    combine_like_items_df.to_csv('D03 - Processed Item Detail Data With Combined Items.csv', index=False)
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Processed Data')
     combine_like_items_df.to_csv('Deliverect Item Level Detail by Order.csv', index=False)
 
     return combine_like_items_df
@@ -303,9 +320,9 @@ def create_output():
                                  'DessertAOV', 'DrinkAOV', 'PromotionsOnItems', 'DeliveryFee', 'Tips', 'IsTestOrder', 'PaymentType', 'ProductPLU', 'ProductName']]
 
     # Save to CSV
-    os.chdir(r'H:\Shared drives\97 - Finance Only\10 - Cleaned Data\02 - Processed Data\01 - Python Output')
+    os.chdir(r'H:\Shared drives\97 - Finance Only\20 - New Python Code\04 - Processed Data')
     final_output.to_csv('Deliverect Data.csv', index=False)
 
     return final_output
 
-final_output_df = create_output()
+deliverect_final_output_df = create_output()
